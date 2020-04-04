@@ -1,4 +1,4 @@
-import os
+from pathlib import Path
 import pynvim
 
 
@@ -8,7 +8,7 @@ class Rooter():
     def __init__(self, working_dir, patterns=['.git']):
         """Initialize rooter class"""
         self.initial_dir = working_dir
-        self.working_dir = working_dir
+        self.working_dir = Path(working_dir)
         self.patterns = patterns
 
     def run_rooter(self):
@@ -16,40 +16,43 @@ class Rooter():
         Runs the rooter repeatedly until something or nothing is found.
         """
         while True:
-            if not self.check_home(self.working_dir):
-                if self.check_patterns():
-                    return self.working_dir
+            if not self.is_special_case(self.working_dir):
+                if self.find_patterns():
+                    return str(self.working_dir)
                 else:
-                    self.working_dir = self.go_up_dir(self.working_dir)
+                    self.working_dir = self.working_dir.parent
             else:
                 return self.initial_dir
 
-    def check_patterns(self):
+    def find_patterns(self):
         """
         Checks if a pattern is found in the supplied directory.
         """
-        listdir = os.listdir(self.working_dir)
+        # listdir = os.listdir(self.working_dir)
         for pattern in self.patterns:
-            if pattern in listdir:
+            matches = self.working_dir.glob(f'*{pattern}')
+            if self.peek(matches):
                 return True
-            else:
-                return False
+        return False
 
     @staticmethod
-    def check_home(directory):
+    def is_special_case(directory):
         """
         Checks if the supplied directory is at home or one level above.
         """
-        if directory == '/home/brian':
+        if directory.parent.parent == Path('/'):
             return True
         else:
             return False
 
     @staticmethod
-    def go_up_dir(directory):
-        """Returns the directory that is one above the supplied directory."""
-        new_directory = os.path.split(directory)[0]
-        return new_directory
+    def peek(iterable):
+        try:
+            next(iterable)
+        except StopIteration:
+            return False
+        else:
+            return True
 
 
 @pynvim.plugin
@@ -58,13 +61,17 @@ class RooterPlugin:
     def __init__(self, nvim):
         self.nvim = nvim
 
-    @pynvim.function('Rooter')
-    def rooter(self, args):
-        self.nvim.command("let cwd = getcwd()")
-        rooter = Rooter(self.nvim.eval("cwd"))
+    @pynvim.command('Rooter', nargs='*', range='')
+    def rooter(self, args, range):
+        # find directory that contains current file
+        self.nvim.command("let path = expand('%:p:h')")
+
+        path = self.nvim.eval('path')
+        rooter = Rooter(path)
         final_dir = rooter.run_rooter()
+
         self.nvim.command("cd {}".format(final_dir))
-        self.nvim.command("echo 'should have just changed dir'")
+        self.nvim.command("echo 'cwd: {}'".format(final_dir))
 
 
 if __name__ == '__main__':

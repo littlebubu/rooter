@@ -18,7 +18,6 @@ def test_above_home():
     rooter = Rooter('/home/brian/projects')
     assert rooter.run_rooter() == '/home/brian/projects', "Test above home failed"
 
-# doesn't work
-# def test_special():
-#     rooter = Rooter('/usr/share')
-#     assert rooter.run_rooter() == '/usr/share', "Special test failed"
+def test_special_case():
+    rooter = Rooter('/usr/share')
+    assert rooter.run_rooter() == '/usr/share', "Special test failed"
