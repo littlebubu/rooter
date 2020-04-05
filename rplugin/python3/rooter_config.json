@@ -1,0 +1,6 @@
+{
+  "autorooter": true,
+  "autocd": false,
+  "patterns": [".git"],
+  "silent": false
+}
